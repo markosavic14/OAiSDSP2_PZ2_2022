@@ -46,7 +46,7 @@ int main() {
 	}
 
 	visualizer::img::show(
-		"/win0/upper_half/src",
+		"src",
 		pix,
 		width,
 		height
@@ -54,7 +54,7 @@ int main() {
 
 
 	visualizer::img::show(
-		"/win0/lower_half/hsv/h",
+		"h",
 		src
 	);
 

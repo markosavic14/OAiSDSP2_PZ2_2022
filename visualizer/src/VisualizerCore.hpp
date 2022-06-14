@@ -93,4 +93,5 @@ private:
 		const std::vector<double>& y,
 		const std::string& label
 	);
+
 };

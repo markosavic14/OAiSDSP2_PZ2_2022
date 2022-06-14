@@ -1,18 +1,23 @@
 windows:
   -
     name: win0
-    type: vert
+    type: layout
+    orientation: vert
     children:
       -
         name: upper_half
-        type: horiz
+        type: layout
+        orientation: horiz
         children:
           -
+          # wtf zasto ovo ne radi? prikazuje neku levu sliku? zato sto ga crtas iz mejna
             name: src
             type: image
+            src: data/l2.jpg
           -
             name: upper_rigth_corner
-            type: vert
+            type: layout
+            orientation: vert
             children:
               -
                 name: th_start_h0
@@ -60,27 +65,38 @@ windows:
         children:
           -
             name: hsv
-            type: horiz
+            type: layout
+            orientation: horiz
             children:
               -
                 name: h
                 type: image
+                src: data/1l.jpg
               -
                 name: s
                 type: image
+                src: data/2l.jpg
               -
                 name: v
                 type: image
+                src: data/3l.jpg
           -
             name: rgb
-            type: horiz
+            type: layout
+            orientation: horiz
             children:
               -
                 name: r
                 type: image
+                src: data/3l.jpg
               -
                 name: g
                 type: image
+                src: data/2l.jpg
               -
                 name: b
                 type: image
+              - 
+                name: h
+                type: image
+                src: data/1l.jpg

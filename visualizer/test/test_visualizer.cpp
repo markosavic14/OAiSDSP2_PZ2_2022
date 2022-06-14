@@ -51,8 +51,21 @@ int main() {
 		}
 	}
 
+	// visualizer::img::show(
+	// 	"/win0/upper_half/src",		//TODO implement endsWith "/src"
+	// 	pix,
+	// 	width,
+	// 	height
+	// );
+
+
+	// visualizer::img::show(
+	// 	"/win0/lower_half/hsv/h",	//TODO implement endsWith "/hsv/h"
+	// 	src
+	// );
+
 	visualizer::img::show(
-		"/win0/upper_half/src",
+		"upper_halfasdfasdf/src",		
 		pix,
 		width,
 		height
@@ -60,7 +73,7 @@ int main() {
 
 
 	visualizer::img::show(
-		"/win0/lower_half/hsv/h",
+		"h",	
 		src
 	);
 
@@ -84,7 +97,7 @@ int main() {
 	}
 
 
-	// TODO create everything from config file and access by full or partial unique path
+	// <3 TODO create everything from config file and access by full or partial unique path
 	/*
 		visualizer::viewImg("win0/upper_half/upper_left_quater/src")
 

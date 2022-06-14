@@ -1,4 +1,3 @@
-
 #include "VisualizerCore.hpp"
 
 #include <QApplication>
@@ -7,6 +6,7 @@
 #include <QTabWidget>
 
 #include <yaml-cpp/parser.h>
+#include <queue>
 //TODO What is this?
 #define YAML_CPP_STATIC_DEFINE
 
@@ -14,6 +14,9 @@
 #include "qcustomplot.h"
 #include "ImageViewerWithSelecter.hpp"
 #include "Slider.hpp"
+
+//for debug
+#include <unistd.h>
 
 
 class Starter {
@@ -44,6 +47,11 @@ VisualizerCore::VisualizerCore() {
 
 }
 
+static inline bool endsWith(string s1, string s2)
+{
+	return (s1.find(s2, s1.size() - s2.size()) + s2.size() == s1.size());
+}
+
 void VisualizerCore::processRequests() {
 	lock_guard<mutex> guard(q.mux);
 	while(!q.load_cfg.empty()){
@@ -55,13 +63,25 @@ void VisualizerCore::processRequests() {
 		auto p = q.img__show.front();
 		q.img__show.pop();
 
-		if(path_to_img_viewer.count(p.path)){
-			auto img_viewer = path_to_img_viewer.at(p.path);
-
-			// TODO QImage::Format_BGR888 in Qt v5.14
-			QImage img(p.pix, p.width, p.height, p.B_per_line, QImage::Format_RGB888);
-			QImage img2 = img.rgbSwapped();
-			img_viewer->setImage(img2);
+		std::queue<string> satisf;
+		for(auto const& x: path_to_img_viewer){
+			string full_path = x.first;
+			if(endsWith(full_path, p.path)){
+				auto img_viewer = path_to_img_viewer.at(full_path);
+				// TODO QImage::Format_BGR888 in Qt v5.14
+				QImage img(p.pix, p.width, p.height, p.B_per_line, QImage::Format_RGB888);
+				QImage img2 = img.rgbSwapped();
+				img_viewer->setImage(img2);
+				satisf.push(full_path);
+			}
+		}
+		/* ambiguity check */
+		if(satisf.size() > 1){
+			std::cout << "ambiguity in names:" << std::endl;
+			while(!satisf.empty()){
+				std::cout << "\t" << satisf.front() << std::endl;
+				satisf.pop();
+			}
 		}
 	}
 	while(!q.plot__plot.empty()){
@@ -102,8 +122,10 @@ void VisualizerCore::recursive_tree_build(
 	auto type = y["type"].as<string>();
 	auto name = y["name"].as<string>();
 	string path = parent_path + "/" + name;
-	//DEBUG(type);
-	if(type == "vert"){
+    // std::cout << "type = " << type << std::endl;
+	// DEBUG(type);
+    // DEBUG(path);
+	/*if(type == "vert"){
 		auto layout = new QVBoxLayout();
 
 		if(l_parent){
@@ -128,7 +150,36 @@ void VisualizerCore::recursive_tree_build(
 		for(auto cy : y["children"]){
 			recursive_tree_build(cy, path, w_parent, layout);
 		}
-	}else if(type == "tab"){
+	}*/
+    if(type == "layout"){
+        string orientation_str = (y["orientation"].as<string>());    
+        if(orientation_str == "vert"){
+            auto layout = new QVBoxLayout();
+
+            if(l_parent){
+                l_parent->addLayout(layout);
+            }else if(w_parent){
+                w_parent->setLayout(layout);
+            }
+
+            for(auto cy : y["children"]){
+                recursive_tree_build(cy, path, w_parent, layout);
+            }
+        }else if(orientation_str == "horiz"){
+            auto layout = new QHBoxLayout();
+
+            if(l_parent){
+                l_parent->addLayout(layout);
+            }else if(w_parent){
+                w_parent->setLayout(layout);
+            }
+
+            for(auto cy : y["children"]){
+                recursive_tree_build(cy, path, w_parent, layout);
+            }
+        }
+    }
+    else if(type == "tab"){
 		QTabWidget* tab = new QTabWidget(w_parent);
 
 		if(l_parent){
@@ -139,9 +190,7 @@ void VisualizerCore::recursive_tree_build(
 		}
 
 		for(auto cy : y["children"]){
-			auto name = QString::fromStdString(
-				cy["name"].as<string>()
-			);
+			auto name = QString::fromStdString(cy["name"].as<string>());
 			QWidget* temp = new QWidget();
 			temp->setAccessibleName(name);
 			tab->addTab(temp, name);
@@ -150,7 +199,25 @@ void VisualizerCore::recursive_tree_build(
 	}else if(type == "image"){
 		auto img_viewer = new ImageViewerWithSelecter();
 		img_viewer->setText(QString::fromStdString(name));
+		//todo ovde
+		//prolazis kroz path_to_img_viewer[path] kljuceve i trazis da li se poklapa sa
 		path_to_img_viewer[path] = img_viewer;
+
+        // if(y["src"]) { 
+        //     string src = y["src"].as<string>();
+
+        //     char buff[1024]; //create string buffer to hold path
+        //     getcwd(buff, FILENAME_MAX);
+        //     string cu_wo_dir(buff);
+
+        //     std::cout << "path= " <<  cu_wo_dir + "/" + src << std::endl;
+            
+        //     QString qPath = QString::fromStdString(cu_wo_dir + "/" + src);
+        //     QImage *img = new QImage(qPath);
+        //     img_viewer->setImage(*img);
+        // }else{
+        //     std::cout << "no src pic included" << std::endl;
+        // }
 
 		if(l_parent){
 			l_parent->addWidget(img_viewer);
@@ -164,8 +231,7 @@ void VisualizerCore::recursive_tree_build(
 		Qt::Orientation orientation;
 		if(orientation_str == "horiz") {
 			orientation = Qt::Horizontal;
-		}
-		else if (orientation_str == "vert") {
+		}else if (orientation_str == "vert") {
 			orientation = Qt::Vertical;
 		}else{
 			cout << "To implement error: " << type << endl;
