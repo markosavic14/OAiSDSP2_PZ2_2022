@@ -27,7 +27,7 @@ top = '.'
 ###############################################################################
 
 def prerequisites(ctx):
-	ctx.recurse('prerequisites')
+	ctx.recurse('visualizer')
 
 def options(opt):
 	opt.load('compiler_cxx')

@@ -32,7 +32,8 @@ def prerequisites(ctx):
 		# Ubuntu.
 		ctx.exec_command2(
 			'apt -y install ' +
-				'pkg-config qt5-default libqcustomplot-dev libyaml-cpp-dev'
+				'pkg-config qt5-default libqcustomplot-dev ' +
+				'libyaml-cpp-dev libopencv-dev'
 		)
 	elif sys.platform == 'win32' and os.name == 'nt' and os.path.sep == '/':
 		# MSYS2 Windows /mingw32/bin/python.
