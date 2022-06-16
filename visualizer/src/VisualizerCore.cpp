@@ -182,6 +182,7 @@ void VisualizerCore::processRequests() {
 			auto slider = vec.front().second;
 			slider->setValue(p.value_to_set);
 		}
+		std::cout << path_to_slider.ambiguity(vec) << std::endl;
 	}
 }
 
