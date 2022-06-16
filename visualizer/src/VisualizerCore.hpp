@@ -52,7 +52,36 @@ struct sliders_stuff {
 };
 extern sliders_stuff s;
 
+// TODO create template class PathMap po uzoru na imageContainer here. 
+template <class T> 
+class PathMap {
+public:
+	PathMap();
 
+	void add(
+		const std::string&,
+		const T&
+	);
+
+	std::vector<std::pair<std::string, T>> search(
+		const std::string&
+	);
+
+	static std::string ambiguity(
+		const std::vector<std::pair<std::string, T>>&
+	);
+
+
+
+private:
+	std::vector<std::pair<std::string, T>> cont;
+
+	bool endsWith(
+		const std::string&,
+		const std::string&
+	);
+
+};
 
 class QBoxLayout;
 class QCustomPlot;
@@ -71,9 +100,13 @@ private:
 	std::thread* t;
 
 	vector<QWidget*> q_wins;
-	map<string, ImageViewerWithSelecter*> path_to_img_viewer;
-	map<string, QCustomPlot*> path_to_plot;
-	map<string, Slider*> path_to_slider;
+	// TODO use PathMap class
+	// map<string, ImageViewerWithSelecter*> path_to_img_viewer;
+	// map<string, QCustomPlot*> path_to_plot;
+	// map<string, Slider*> path_to_slider;
+	PathMap<QCustomPlot*> path_to_plot;
+	PathMap<Slider*> path_to_slider;
+	PathMap<ImageViewerWithSelecter*> path_to_img_viewer;
 
 	void recursive_tree_build(
 		const YAML::Node& y,

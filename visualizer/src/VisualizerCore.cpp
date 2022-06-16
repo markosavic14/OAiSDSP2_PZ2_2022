@@ -44,13 +44,68 @@ pkg_queues q;
 sliders_stuff s;
 
 VisualizerCore::VisualizerCore() {
+	//imageContainer = ImageContainer();
+}
+
+
+template <class T> PathMap<T>::PathMap() {
 
 }
 
-static inline bool endsWith(string s1, string s2)
-{
+template <class T> void PathMap<T>::add(
+	const std::string& pPath,
+	const T& val
+) {
+	std::pair<std::string, T> element(pPath, val);
+	this->cont.push_back(element);
+}
+
+template <class T> bool PathMap<T>::endsWith(
+	const std::string& s1,
+	const std::string& s2
+) {
 	return (s1.find(s2, s1.size() - s2.size()) + s2.size() == s1.size());
 }
+
+template <class T> std::vector<std::pair<std::string, T>> PathMap<T>::search(
+	const std::string& pPath
+) {
+	std::vector<std::pair<std::string, T>> retvec;
+	for (auto const& x: this->cont) {
+		string fullPath = x.first;
+		if (this->endsWith(fullPath, pPath)) {
+			retvec.push_back(x);
+		}
+	}
+	return retvec;
+}
+
+template <class T> std::string PathMap<T>::ambiguity(
+	const std::vector<std::pair<std::string, T>>& vect
+) {
+	std::string ret(" ");
+	switch(vect.size()){
+		case 0:
+			ret.append("No match found for");
+			ret.append(vect.front().first);
+			break;
+		case 1:
+			ret.append("Match found");  
+			ret.append(vect.front().first);
+			break;
+		default:
+			ret.append("Ambiguity\n");
+			for(auto el : vect){
+				ret.append("\t");
+				ret.append(el.first);
+				ret.append(" \n");
+			}
+			break;
+	}
+	return ret;
+}
+
+
 
 void VisualizerCore::processRequests() {
 	lock_guard<mutex> guard(q.mux);
@@ -63,26 +118,44 @@ void VisualizerCore::processRequests() {
 		auto p = q.img__show.front();
 		q.img__show.pop();
 
-		std::queue<string> satisf;
-		for(auto const& x: path_to_img_viewer){
-			string full_path = x.first;
-			if(endsWith(full_path, p.path)){
-				auto img_viewer = path_to_img_viewer.at(full_path);
-				// TODO QImage::Format_BGR888 in Qt v5.14
-				QImage img(p.pix, p.width, p.height, p.B_per_line, QImage::Format_RGB888);
-				QImage img2 = img.rgbSwapped();
-				img_viewer->setImage(img2);
-				satisf.push(full_path);
-			}
-		}
-		/* ambiguity check */
-		if(satisf.size() > 1){
-			std::cout << "ambiguity in names:" << std::endl;
-			while(!satisf.empty()){
-				std::cout << "\t" << satisf.front() << std::endl;
-				satisf.pop();
-			}
-		}
+		// std::queue<string> satisf;
+		// // TODO use ImageContainer instead
+		// for(auto const& x: path_to_img_viewer){
+		// 	string full_path = x.first;
+		// 	if(endsWith(full_path, p.path)){
+		// 		// TODO use ImageContainer instead
+		// 		auto img_viewer = path_to_img_viewer.at(full_path);
+		// 		// TODO QImage::Format_BGR888 in Qt v5.14
+		// 		QImage img(p.pix, p.width, p.height, p.B_per_line, QImage::Format_RGB888);
+		// 		QImage img2 = img.rgbSwapped();
+		// 		img_viewer->setImage(img2);
+		// 		satisf.push(full_path);
+		// 	}
+		// }
+
+		auto vect = path_to_img_viewer.search(p.path);
+		auto img_viewer = vect.front().second;
+		QImage img(p.pix, p.width, p.height, p.B_per_line, QImage::Format_RGB888);
+		QImage img2 = img.rgbSwapped();
+		img_viewer->setImage(img2);
+		// ambiguity check
+		/*switch(vect.size()) {
+			case 0:
+				std::cout << "no match in " << vect.front().first << std::endl;
+				break;
+			case 1:
+				std::cout << "match" << std::endl;
+				break;
+			default:
+				std::cout << "ambiguity:" << std::endl;
+				for (auto const& x: vect) {
+					std::cout << "\t" << x.first << std::endl;
+				}
+				break;
+		}*/
+		std::cout << path_to_img_viewer.ambiguity(vect) << std::endl;
+
+
 	}
 	while(!q.plot__plot.empty()){
 		auto p = q.plot__plot.front();
@@ -100,8 +173,13 @@ void VisualizerCore::processRequests() {
 		auto p = q.slider__slider.front();
 		q.slider__slider.pop();
 
-		if(path_to_slider.count(p.path)){
-			auto slider = path_to_slider.at(p.path);
+		// if(path_to_slider.count(p.path)){
+		// 	auto slider = path_to_slider.at(p.path);
+		// 	slider->setValue(p.value_to_set);
+		// }
+		auto vec = path_to_slider.search(p.path);
+		if (vec.size()) {
+			auto slider = vec.front().second;
 			slider->setValue(p.value_to_set);
 		}
 	}
@@ -201,7 +279,12 @@ void VisualizerCore::recursive_tree_build(
 		img_viewer->setText(QString::fromStdString(name));
 		//todo ovde
 		//prolazis kroz path_to_img_viewer[path] kljuceve i trazis da li se poklapa sa
-		path_to_img_viewer[path] = img_viewer;
+		
+		// TODO use ImageContainer instead
+		
+		//imageContainer.add(path, img_viewer);
+		//path_to_img_viewer[path] = img_viewer;
+		path_to_img_viewer.add(path, img_viewer);
 
         // if(y["src"]) { 
         //     string src = y["src"].as<string>();
@@ -254,7 +337,8 @@ void VisualizerCore::recursive_tree_build(
 			orientation,
 			w_parent
 		);
-		path_to_slider[path] = slider;
+		//path_to_slider[path] = slider;
+		path_to_slider.add(path, slider);
 
 		if(l_parent){
 			l_parent->addWidget(slider);
@@ -263,11 +347,15 @@ void VisualizerCore::recursive_tree_build(
 			cout << "To implement: " << type << endl;
 		}
 
+		//auto vect = path_to_slider.search(path);
+		//auto st = path_to_slider.ambiguity(vect);
+
 	}else if(type == "plot"){
 		auto plot = new QCustomPlot();
 		//TODO plot->setText(QString::fromStdString(name));
 		DEBUG(plot);
-		path_to_plot[path] = plot;
+		//path_to_plot[path] = plot;
+		path_to_plot.add(path, plot);
 
 		if(l_parent){
 			l_parent->addWidget(plot);
@@ -358,16 +446,41 @@ void VisualizerCore::plot__plot(
 	const std::vector<double>& y,
 	const std::string& label
 ) {
-	if(path_to_plot.count(path)){
-		auto plot = path_to_plot.at(path);
+	// if(path_to_plot.count(path)){
+	// 	auto plot = path_to_plot.at(path);
+
+	// 	plot->graph(idx)->setData(
+	// 		QVector<double>::fromStdVector(x),
+	// 		QVector<double>::fromStdVector(y)
+	// 	);
+	// 	plot->graph(idx)->setName(
+	// 		QString::fromStdString(label)
+	// 	);
+	// 	plot->replot();
+	// }
+	auto vect = path_to_plot.search(path);
+	
+	auto st = path_to_plot.ambiguity(vect); //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+	std::cout << path_to_plot.ambiguity(vect) << std::endl;
+	if (vect.size()) {
+		auto plot = vect.front().second;
 
 		plot->graph(idx)->setData(
 			QVector<double>::fromStdVector(x),
 			QVector<double>::fromStdVector(y)
 		);
-		plot->graph(idx)->setName(
-			QString::fromStdString(label)
-		);
-		plot->replot();
+ //0:
+	// 		std::cout << "no match in " << vect.front().first << std::endl;
+	// 		break;
+	// 	case 1:
+	// 		std::cout << "match" << std::endl;
+	// 		break;
+	// 	default:
+	// 		std::cout << "ambiguity:" << std::endl;
+	// 		for (auto const& x: vect) {
+	// 			std::cout << "\t" << x.first << std::endl;
+	// 		}
+	// 		break;
+	// 
 	}
 }

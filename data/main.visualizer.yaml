@@ -59,6 +59,11 @@ windows:
                 type: slider
                 max: 255
                 orientation: horiz
+              -
+                name: th_stop_v
+                type: slider
+                max: 255
+                orientation: horiz
       -
         name: lower_half
         type: tab
@@ -97,6 +102,6 @@ windows:
                 name: b
                 type: image
               - 
-                name: h
-                type: image
-                src: data/1l.jpg
+               name: h
+               type: image
+               src: data/1l.jpg

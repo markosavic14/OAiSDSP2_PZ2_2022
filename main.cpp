@@ -16,6 +16,7 @@ using namespace cv;
 
 int main() {
 	Mat src = cv::imread("data/stop_sign.jpg");
+	Mat src2 = cv::imread("data/1l.jpg");
 	if(src.empty()){
 		throw runtime_error("Cannot open image!");
 	}
@@ -56,6 +57,11 @@ int main() {
 	visualizer::img::show(
 		"h",
 		src
+	);
+
+	visualizer::img::show(
+		"r",
+		src2
 	);
 
 	int th_start_h0;
