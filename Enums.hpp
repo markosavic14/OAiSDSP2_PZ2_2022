@@ -28,17 +28,30 @@ static cv::Scalar segm_to_color[] = {
 
 
 static std::string sign_types[] = {
-	"Stop",//ima
-	"Priority",//ima
+	"Stop",
+	"Priority",
 	"Crosswalk",
 	"Parking",
 	"Proceed straight",
-	"One-way",//ima
-	"Danger",//ima
-	"No parking",//ima
-	"No priority",//ima i zove se give way...
+	"One-way",
+	"Danger",
+	"No parking",
+	"No priority",
 	"Pedestrian zone",
 	"Highway Entry",
 	"Highway Exit",
-	"Black spot"//ima
+	"Black spot"
+};
+
+enum SHAPE {
+	CIRCLE,
+	RECTANGLE,
+	TRIANGLE
+};
+
+enum COLOR {
+	RED,
+	BLUE,
+	WHITE,
+	GREEN
 };

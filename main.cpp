@@ -24,11 +24,11 @@ using namespace cv;
 #define RED_V_MAX 255
 
 //BLUE
-#define BLUE_H_MIN 90
-#define BLUE_H_MAX 128
-#define BLUE_S_MIN 50
+#define BLUE_H_MIN 97
+#define BLUE_H_MAX 118
+#define BLUE_S_MIN 57
 #define BLUE_S_MAX 255
-#define BLUE_V_MIN 70
+#define BLUE_V_MIN 77
 #define BLUE_V_MAX 255
 
 //WHITE
@@ -39,8 +39,19 @@ using namespace cv;
 #define WHITE_V_MIN 231
 #define WHITE_V_MAX 255
 
-void getContours(Mat ivice,Mat original){
 
+Mat getEdges(Mat hsvMask){
+	Mat imgCanny;
+
+	GaussianBlur(hsvMask,hsvMask,Size(3,3),20,5);//blur pred odredjivanje ivica
+	Canny(hsvMask,imgCanny,100,300);// canny detektor ivica
+	Mat kernel=getStructuringElement(MORPH_RECT,Size(7,7));// kernel za naglasavanje ivica
+	dilate(imgCanny,imgCanny,kernel);// dilate nam poboljsa vidljivost ivica
+
+	return imgCanny;
+}
+
+void getContours(Mat ivice, Mat original){
 	vector<vector<Point>> contours;
 	vector<Vec4i> hierarchy;
 	findContours(ivice,contours,hierarchy,RETR_EXTERNAL,CHAIN_APPROX_SIMPLE);//nalazi konture
@@ -52,10 +63,19 @@ void getContours(Mat ivice,Mat original){
 	int i=0;
 	for(int i=0;i<contours.size();i++){
 		area=contourArea(contours[i]);
+		cout<<"cut " + to_string(i)<<endl;
+		cout<<"area:";
 		cout<<area<<endl;
 		if(area>1000){
 			float peri=arcLength(contours[i],true);
 			approxPolyDP(contours[i],conPoly[i],0.025*peri,true);
+
+			cout<<"conpoly:";
+			cout<<conPoly[i]<<endl;
+
+			if((conPoly[i].size() != 3) && (conPoly[i].size() != 4) && (conPoly[i].size() != 8)){
+				continue;
+			}
 			
 			drawContours(mask, contours, i, Scalar(255), CV_FILLED);
 			drawContours(original,contours,i,Scalar(161, 111, 245),5);
@@ -68,62 +88,72 @@ void getContours(Mat ivice,Mat original){
 
 			Mat imgcrop=crop(boundRect[i]);
 			imshow("cut"+ to_string(i),imgcrop);
-			i+=1;
 			imshow("Slika sa maskiranom pozadinom",crop);
 		}
+		cout<<endl<<endl<<endl;
 	}
-	
 }
 
+
 int main() {
-	//visualizer::load_cfg("data/main.visualizer.yaml");
-	//Mat src = cv::imread("data/stop_sign.jpg");
-	//Mat src = cv::imread("data/stop.jpg");
-	//Mat src = cv::imread("data/no_parking.jpg");
-	//Mat src = cv::imread("data/black_spot.jpg");
-	//Mat src = cv::imread("data/danger.jpg");
-	//Mat src = cv::imread("data/wrong_way.jpg");
-	//Mat src = cv::imread("data/no_priority.jpg");
-	//Mat src = cv::imread("data/priority.jpg");
-	//Mat src = cv::imread("data/signs.png"); //test, ne treba koristiti ovo sem za debug
-	Mat imgGray;
-	Mat imgCanny;
-	Mat Img;
-	Mat imgHSV;
-	Mat hsvMask,hsvMask1,hsvMask2;
-	if(src.empty()){
-		throw runtime_error("Cannot open image!");
-	}
-
-	resize(src,Img,Size(),1,1);//neutral
-
-	cvtColor(Img,imgGray,COLOR_BGR2GRAY);//konverzija u crno belo
-	cvtColor(Img,imgHSV,COLOR_BGR2HSV);//konverzija u hsv prostor
-
-
-	////////////////////////////////////////////////////////////////////////////////// crvena boja
-	Scalar lower1(RED_H_MIN_1,RED_S_MIN,RED_V_MIN);//donja granica 
-	Scalar upper1(RED_H_MAX_1,RED_S_MAX,RED_V_MAX);//gornja granica
-	inRange(imgHSV,lower1,upper1,hsvMask1);//pravi crno belu sliku od boje
-
-	Scalar lower2(RED_H_MIN_2,RED_S_MIN,RED_V_MIN);//donja granica
-	Scalar upper2(RED_H_MAX_2,RED_S_MAX,RED_V_MAX);//gornja granica
-	inRange(imgHSV,lower2,upper2,hsvMask2);//pravi crno belu sliku od boje
-
-	hsvMask=hsvMask1 | hsvMask2;// od dva dela slike(jer je crvena na pocetku i kraju range-a) dobijamo jedan
-
-	GaussianBlur(hsvMask,hsvMask,Size(3,3),20,5);//blur pred odredjivanje ivica
-	Canny(hsvMask,imgCanny,100,300);// canny detektor ivica
-	Mat kernel=getStructuringElement(MORPH_RECT,Size(7,7));// kernel za naglasavanje ivica
-	dilate(imgCanny,imgCanny,kernel);// dilate nam poboljsa vidljivost ivica
+	Mat src, ImgOriginal, imgCanny, imgHSV, hsvMask, red_hsvMask1, red_hsvMask2, blue_hsvMask, white_hsvMask;
 	
-	getContours(imgCanny,Img);
+	//blue
+	//src = cv::imread("data/blue/crosswalk.jpg");
+	//src = cv::imread("data/blue/parking.jpg");
+	//src = cv::imread("data/blue/straight_ahead_round.jpeg");	
 
-	imshow("Image",Img);
-	DEBUG(4);
+	//green
+	//src = cv::imread("data/green/highway_entry.png");
+	//src = cv::imread("data/green/highway_exit.jpeg");
+
+	//red
+	src = cv::imread("data/red/no_parking.jpg");
+	//src = cv::imread("data/red/no_priority.jpg");
+	//src = cv::imread("data/red/stop_sign.jpg");
+	//src = cv::imread("data/red/stop.jpg");
+	//src = cv::imread("data/red/wrong_way.jpg");
+	//src = cv::imread("data/red/signs.png");
+
+	//white
+	//src = cv::imread("data/white/priority.jpg");
+
+	//mixed
+	//src = cv::imread("data/mixed/Auto-put-petlja-Nis-jug.jpg");
+	//src = cv::imread("data/mixed/pedestrian_zone.jpg");
+	//src = cv::imread("data/mixed/procced_straight.jpg");
+
+		
+	if(src.empty()) throw runtime_error("Cannot open image!");
+	cout<<"Img size:"<<src.size()<<endl;
+	resize(src,ImgOriginal,Size(),0.5,0.5);//neutral
+	cvtColor(ImgOriginal,imgHSV,COLOR_BGR2HSV);//konverzija u hsv prostor
 
 
+	Scalar red_lower_1(RED_H_MIN_1,RED_S_MIN,RED_V_MIN);
+	Scalar red_upper_1(RED_H_MAX_1,RED_S_MAX,RED_V_MAX);
+	inRange(imgHSV,red_lower_1,red_upper_1,red_hsvMask1);
+
+	Scalar red_lower_2(RED_H_MIN_2,RED_S_MIN,RED_V_MIN);
+	Scalar red_upper_2(RED_H_MAX_2,RED_S_MAX,RED_V_MAX);
+	inRange(imgHSV,red_lower_2,red_upper_2,red_hsvMask2);
+
+	Scalar blue_lower(BLUE_H_MIN,BLUE_S_MIN,BLUE_V_MIN);
+	Scalar blue_upper(BLUE_H_MAX,BLUE_S_MAX,BLUE_V_MAX);
+	inRange(imgHSV,blue_lower,blue_upper,blue_hsvMask);
+
+	// Scalar white_lower(WHITE_H_MIN, WHITE_S_MIN, WHITE_V_MIN);
+	// Scalar white_upper(WHITE_H_MAX, WHITE_S_MAX, WHITE_V_MAX);
+	// inRange(imgHSV,white_lower,white_upper,white_hsvMask);;
+
+	hsvMask=red_hsvMask1 | red_hsvMask2 | blue_hsvMask;// od vise delova maske dobijamo jednu
+
+	imgCanny = getEdges(hsvMask);
+	imshow("Canny", imgCanny);
+	getContours(imgCanny, ImgOriginal);
+
+
+	imshow("Image",ImgOriginal);
 	waitKey(0);
-
 	return 0;
 }
