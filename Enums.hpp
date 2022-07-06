@@ -28,17 +28,17 @@ static cv::Scalar segm_to_color[] = {
 
 
 static std::string sign_types[] = {
-	"Stop",
-	"Priority",
+	"Stop",//ima
+	"Priority",//ima
 	"Crosswalk",
 	"Parking",
 	"Proceed straight",
-	"One-way",
-	"Danger",
-	"No parking",
-	"No priority",
+	"One-way",//ima
+	"Danger",//ima
+	"No parking",//ima
+	"No priority",//ima i zove se give way...
 	"Pedestrian zone",
 	"Highway Entry",
 	"Highway Exit",
-	"Black spot"
+	"Black spot"//ima
 };
