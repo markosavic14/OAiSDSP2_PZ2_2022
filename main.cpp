@@ -1,3 +1,6 @@
+//TODO values for green, input select
+
+
 #include "Enums.hpp"
 
 #include <visualizer.hpp>
@@ -33,23 +36,31 @@ using namespace cv;
 #define BLUE_V_MAX 255
 
 //YELLOW
-#define YELLOW_H_MIN 15
-#define YELLOW_H_MAX 55
-#define YELLOW_S_MIN 100
+#define YELLOW_H_MIN 10
+#define YELLOW_H_MAX 35
+#define YELLOW_S_MIN 165
 #define YELLOW_S_MAX 255
 #define YELLOW_V_MIN 100
 #define YELLOW_V_MAX 255
 
 //GREEN
-#define GREEN_H_MIN 50
-#define GREEN_H_MAX 100
-#define GREEN_S_MIN 100
-#define GREEN_S_MAX 255
-#define GREEN_V_MIN 100
+#define GREEN_H_MIN 68
+#define GREEN_H_MAX 102
+#define GREEN_S_MIN 72
+#define GREEN_S_MAX 126
+#define GREEN_V_MIN 156
 #define GREEN_V_MAX 255
 
 
-
+void drawPoints(Mat img, vector<Point> points, Scalar color){
+	Mat kopija;
+	resize(img, kopija,Size(), 1, 1);
+	for(int i = 0; i< points.size(); i++){
+		circle(kopija, points[i], 5, color, FILLED);
+		putText(kopija, to_string(i), points[i], FONT_HERSHEY_PLAIN, 3, color, 3);
+	}
+	imshow("Aproksimacija", kopija);
+}
 
 Mat findColor(Mat img, int hmin1, int hmax1, int hmin2, int hmax2, int smin, int smax, int vmin, int vmax){
 
@@ -83,6 +94,7 @@ Mat getEdges(Mat hsvMask){
 
 int cut_size = 0;
 
+
 void getContours(Mat ivice, Mat original){
 	vector<vector<Point>> contours;
 	vector<Vec4i> hierarchy;
@@ -98,39 +110,37 @@ void getContours(Mat ivice, Mat original){
 		cout<<"cut " + to_string(i)<<endl;
 		cout<<"area:";
 		cout<<area<<endl;
-		if(area>1000){
-			float peri=arcLength(contours[i],true);
-			approxPolyDP(contours[i],conPoly[i],0.025*peri,true);
+		if(area<1000) continue;
+		float peri=arcLength(contours[i],true);
+		approxPolyDP(contours[i],conPoly[i],0.025*peri,true);
 
-			cout<<"conpoly:";
-			cout<<conPoly[i]<<endl;
+		cout<<"conpoly:";
+		cout<<conPoly[i]<<endl;
 
-			if((conPoly[i].size() != 3) && (conPoly[i].size() != 4) && (conPoly[i].size() != 8)){
-				continue;
-			}
-			
-			drawContours(mask, contours, i, Scalar(255), CV_FILLED);
-			drawContours(original,contours,i,Scalar(161, 111, 245),5);
-			boundRect[i] = boundingRect(conPoly[i]);
-			
-			Mat crop(ogCopy.rows, ogCopy.cols, CV_8UC3);
-			crop.setTo(Scalar(161, 111, 245));
-			ogCopy.copyTo(crop,mask);
-			normalize(mask.clone(), mask, 0.0, 255.0, CV_MINMAX, CV_8UC1);
+		if((conPoly[i].size() != 3) && (conPoly[i].size() != 4) && (conPoly[i].size() != 8)) continue;
+		
+		drawContours(mask, contours, i, Scalar(255), CV_FILLED);
+		drawContours(original,contours,i,Scalar(161, 111, 245),5);
+		boundRect[i] = boundingRect(conPoly[i]);
 
-			Mat imgcrop=crop(boundRect[i]);
-			imshow("cut"+ to_string(cut_size),imgcrop);
-			cut_size += 1;
-			imshow("Slika sa maskiranom pozadinom",crop);
-		}
-		cout<<endl<<endl;
+		drawPoints(original, conPoly[i], Scalar(0,255,0));
+		
+		Mat crop(ogCopy.rows, ogCopy.cols, CV_8UC3);
+		crop.setTo(Scalar(161, 111, 245));
+		ogCopy.copyTo(crop,mask);
+		normalize(mask.clone(), mask, 0.0, 255.0, CV_MINMAX, CV_8UC1);
+
+		Mat imgcrop=crop(boundRect[i]);
+		imshow("cut"+ to_string(cut_size),imgcrop);
+		cut_size += 1;
+		imshow("Slika sa maskiranom pozadinom",crop);
 	}
 }
 
 
 int main() {
 	Mat src, ImgOriginal, imgCanny, hsvMask;
-	int hmin1 = RED_H_MIN_1, hmax1 = RED_H_MAX_1, hmin2 = RED_H_MIN_2, hmax2 = RED_H_MAX_2, smin = RED_S_MIN, smax = RED_S_MAX, vmin = RED_V_MIN, vmax = RED_V_MAX;
+	int hmin1, hmax1, hmin2, hmax2, smin, smax, vmin, vmax;
 	
 	//blue
 	//src = cv::imread("data/blue/crosswalk.jpg");
@@ -153,13 +163,10 @@ int main() {
 	//src = cv::imread("data/white/priority.jpg");
 
 	//mixed
-	src = cv::imread("data/mixed/Auto-put-petlja-Nis-jug.jpg");
+	//src = cv::imread("data/mixed/Auto-put-petlja-Nis-jug.jpg");
 	//src = cv::imread("data/mixed/pedestrian_zone.jpg");
-	//src = cv::imread("data/mixed/procced_straight.jpg");
-
-		
+	src = cv::imread("data/mixed/procced_straight.jpg");
 	if(src.empty()) throw runtime_error("Cannot open image!");
-	cout<<endl<<"src size:"<<src.size().width<<endl;
 
 	namedWindow("Trackbars", (200, 200));
 
@@ -229,7 +236,6 @@ int main() {
 		imgCanny = getEdges(hsvMask);
 
 		getContours(imgCanny, ImgOriginal);
-
 
 		imshow("Originalna slika",ImgOriginal);
 		imshow("Canny", imgCanny);
