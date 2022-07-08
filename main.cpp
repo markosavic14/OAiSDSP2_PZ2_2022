@@ -1,6 +1,3 @@
-//TODO values for green, input select
-
-
 #include "Enums.hpp"
 
 #include <visualizer.hpp>
@@ -37,29 +34,34 @@ using namespace cv;
 
 //YELLOW
 #define YELLOW_H_MIN 10
-#define YELLOW_H_MAX 35
-#define YELLOW_S_MIN 165
+#define YELLOW_H_MAX 50
+#define YELLOW_S_MIN 70
 #define YELLOW_S_MAX 255
-#define YELLOW_V_MIN 100
+#define YELLOW_V_MIN 50
 #define YELLOW_V_MAX 255
 
 //GREEN
-#define GREEN_H_MIN 68
-#define GREEN_H_MAX 102
-#define GREEN_S_MIN 72
-#define GREEN_S_MAX 126
-#define GREEN_V_MIN 156
-#define GREEN_V_MAX 255
+#define GREEN_H_MIN 60
+#define GREEN_H_MAX 120
+#define GREEN_S_MIN 60
+#define GREEN_S_MAX 130
+#define GREEN_V_MIN 40
+#define GREEN_V_MAX 100
+
+//WHITE
+#define WHITE_H_MIN 25
+#define WHITE_H_MAX 40
+#define WHITE_S_MIN 1
+#define WHITE_S_MAX 20
+#define WHITE_V_MIN 30
+#define WHITE_V_MAX 255
 
 
 void drawPoints(Mat img, vector<Point> points, Scalar color){
-	Mat kopija;
-	resize(img, kopija,Size(), 1, 1);
 	for(int i = 0; i< points.size(); i++){
-		circle(kopija, points[i], 5, color, FILLED);
-		putText(kopija, to_string(i), points[i], FONT_HERSHEY_PLAIN, 3, color, 3);
+		circle(img, points[i], 5, color, FILLED);
+		putText(img, to_string(i), points[i], FONT_HERSHEY_PLAIN, 3, color, 3);
 	}
-	imshow("Aproksimacija", kopija);
 }
 
 Mat findColor(Mat img, int hmin1, int hmax1, int hmin2, int hmax2, int smin, int smax, int vmin, int vmax){
@@ -94,28 +96,23 @@ Mat getEdges(Mat hsvMask){
 
 int cut_size = 0;
 
-
-void getContours(Mat ivice, Mat original){
+void draw_and_crop_Contours(Mat ivice, Mat original){
 	vector<vector<Point>> contours;
 	vector<Vec4i> hierarchy;
-	findContours(ivice,contours,hierarchy,RETR_EXTERNAL,CHAIN_APPROX_SIMPLE);//nalazi konture
-	int area;
+
+	findContours(ivice,contours,hierarchy,RETR_EXTERNAL,CHAIN_APPROX_SIMPLE);
+	
 	vector<vector<Point>> conPoly(contours.size());
 	vector<Rect> boundRect(contours.size());
 	Mat ogCopy(original);
 	Mat mask = Mat::zeros(original.rows, original.cols, CV_8UC1);
-	int i=0;
+	Mat anumeracija;
+	resize(original, anumeracija,Size(), 1, 1);
 	for(int i=0;i<contours.size();i++){
-		area=contourArea(contours[i]);
-		cout<<"cut " + to_string(i)<<endl;
-		cout<<"area:";
-		cout<<area<<endl;
+		int area=contourArea(contours[i]);
 		if(area<1000) continue;
 		float peri=arcLength(contours[i],true);
 		approxPolyDP(contours[i],conPoly[i],0.025*peri,true);
-
-		cout<<"conpoly:";
-		cout<<conPoly[i]<<endl;
 
 		if((conPoly[i].size() != 3) && (conPoly[i].size() != 4) && (conPoly[i].size() != 8)) continue;
 		
@@ -123,7 +120,7 @@ void getContours(Mat ivice, Mat original){
 		drawContours(original,contours,i,Scalar(161, 111, 245),5);
 		boundRect[i] = boundingRect(conPoly[i]);
 
-		drawPoints(original, conPoly[i], Scalar(0,255,0));
+		drawPoints(anumeracija, conPoly[i], Scalar(0,255,0));
 		
 		Mat crop(ogCopy.rows, ogCopy.cols, CV_8UC3);
 		crop.setTo(Scalar(161, 111, 245));
@@ -134,6 +131,7 @@ void getContours(Mat ivice, Mat original){
 		imshow("cut"+ to_string(cut_size),imgcrop);
 		cut_size += 1;
 		imshow("Slika sa maskiranom pozadinom",crop);
+		imshow("Slika sa anumiranim konturama", anumeracija);
 	}
 }
 
@@ -156,22 +154,22 @@ int main() {
 	//src = cv::imread("data/red/no_priority.jpg");
 	//src = cv::imread("data/red/stop_sign.jpg");
 	//src = cv::imread("data/red/stop.jpg");
-	//src = cv::imread("data/red/wrong_way.jpg");
-	//src = cv::imread("data/red/signs.png");
 
 	//white
-	//src = cv::imread("data/white/priority.jpg");
+	src = cv::imread("data/white/priority.jpg");
 
 	//mixed
+	//src = cv::imread("data/red/wrong_way.jpg");
 	//src = cv::imread("data/mixed/Auto-put-petlja-Nis-jug.jpg");
 	//src = cv::imread("data/mixed/pedestrian_zone.jpg");
-	src = cv::imread("data/mixed/procced_straight.jpg");
+	//src = cv::imread("data/mixed/procced_straight.jpg");
+
 	if(src.empty()) throw runtime_error("Cannot open image!");
 
 	namedWindow("Trackbars", (200, 200));
 
-	string s_w = "0 : RED\n1 : BLUE\n2 : GREEN\n3 : YELLOW";
-	createTrackbar(s_w, "Trackbars", 0, 3);
+	string s_w = "0 : RED\n1 : BLUE\n2 : GREEN\n3 : YELLOW\n4 : WHITE";
+	createTrackbar(s_w, "Trackbars", 0, 4);
 	setTrackbarPos(s_w, "Trackbars", 0);
 
 	string r_w = "Resize";
@@ -223,7 +221,18 @@ int main() {
 				vmin = YELLOW_V_MIN;
 				vmax = YELLOW_V_MAX;
 				break;
+			case 4://white
+				hmin1 = WHITE_H_MIN;
+				hmax1 = WHITE_H_MAX;
+				hmin2 = 0;
+				hmax2 = 0;
+				smin = WHITE_S_MIN;
+				smax = WHITE_S_MAX;
+				vmin = WHITE_V_MIN;
+				vmax = WHITE_V_MAX;
+				break;
 			default:
+
 				break;
 		}
 
@@ -235,7 +244,7 @@ int main() {
 
 		imgCanny = getEdges(hsvMask);
 
-		getContours(imgCanny, ImgOriginal);
+		draw_and_crop_Contours(imgCanny, ImgOriginal);
 
 		imshow("Originalna slika",ImgOriginal);
 		imshow("Canny", imgCanny);
@@ -243,13 +252,13 @@ int main() {
 		destroyWindow("Originalna slika");
 		destroyWindow("Canny");
 		destroyWindow("Slika sa maskiranom pozadinom");
+		destroyWindow("Slika sa anumiranim konturama");
 		while(cut_size >= 0){
 			destroyWindow("cut"+ to_string(cut_size));
 			cut_size -= 1;
 		}
 		cut_size = 0;
 	}
-
 
 	return 0;
 }
